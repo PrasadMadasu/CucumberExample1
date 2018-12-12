@@ -36,21 +36,29 @@ public class WriteExcel {
 		      
 			workbook = new XSSFWorkbook();
 		      
-			spreadsheet = workbook.createSheet("Time Off Balances");
+			spreadsheet = workbook.createSheet("Time Off Balances Not Matched Details");
 
 			LinkedHashMap<String,Object[]> balancesInfo = new LinkedHashMap<String,Object[]>();
 			Integer count = 1;
-			balancesInfo.put(count.toString(), new Object[] {"Employee Name", 
+			balancesInfo.put(count.toString(), new Object[] {"Emp Code",
+															 "Emp Name",
 															 "Time Off", 
-															 "Projected Balance"});
+															 "Comments"});
 			
-			System.out.println("Time Off Balances Data is: "+timeOffBalances);
+			System.out.println("Time Off Balances Not Matched Data is: "+timeOffBalances);
 			
 			if (timeOffBalances != null && timeOffBalances.size() > 0) {
 				for (Table.Cell<String,String,String> cell: timeOffBalances.cellSet()) {
 					count++;
+					
+					String rowKey = cell.getRowKey();
+					String[] strArray = rowKey.split("\\@");
+					String empCode = strArray[0];
+					String empName = strArray[1];
+					
 					balancesInfo.put(count.toString(), 
-									 new Object[] {cell.getRowKey(),
+									 new Object[] {empCode,
+											 	   empName,
 											 	   cell.getColumnKey(),
 											 	   cell.getValue()});
 				}
