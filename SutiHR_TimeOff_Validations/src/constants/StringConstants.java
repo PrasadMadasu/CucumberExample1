@@ -8,6 +8,7 @@ public class StringConstants {
 	public static final String APPLICATION_URL = "https://demo2.sutihr.com/default.action#nbb";
 	public static final String APPLICATION_PERSONNEL_PAGE = "https://demo2.sutihr.com/paEmpSearch_search.action";
 	public static final String APPLICATION_SIGN_OUT_URL = "https://demo2.sutihr.com/logout.action";
+	public static final String APPLICATION_TIMEOFF_DETAILS_URL = "https://demo2.sutihr.com/timeMgmtLeavetype_view.action";
 	
 	public static final String TIMEOFF_BALANCES_NOT_MATCHED = ".//src//properties//TimeOff_Balances_Not_Matched.xlsx";
 	public static final String TIME_OFF_BALANCES_REPORT = ".//src//properties//EmployeeTimeoffBalances.xlsx";

@@ -224,6 +224,8 @@ public class StepDefinition {
 	@Then("^read Time Off details$")
 	public void read_Time_Off_details() throws Throwable {
 		
+		driver.get(StringConstants.APPLICATION_TIMEOFF_DETAILS_URL);
+		
 		WebElement tableElement = driver.findElement(By.xpath(".//*[@id='border']"));
 		
 		// create empty table object and iterate through all rows of the found table element
