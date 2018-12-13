@@ -19,6 +19,7 @@ import constants.StringConstants;
 import cucumber.api.java.en.Given;
 import cucumber.api.java.en.Then;
 import dto.TimeOffDetailsDTO;
+import read.write.excel.files.ReadExcel;
 import read.write.excel.files.WriteExcel;
 /**
  * 
@@ -57,13 +58,13 @@ public class StepDefinition {
 
 	@Then("^read Time Off Balances report data$")
 	public void read_Time_Off_Balances_report_data() throws Throwable {
-		//timeOffBalancesReportData = ReadExcel.getTimeOffBalanceReportData(StringConstants.TIME_OFF_BALANCES_REPORT);
-		//employees = new ArrayList<String>(timeOffBalancesReportData.rowKeySet());
+		timeOffBalancesReportData = ReadExcel.getTimeOffBalanceReportData(StringConstants.TIME_OFF_BALANCES_REPORT);
+		employees = new ArrayList<String>(timeOffBalancesReportData.rowKeySet());
 	}
 	
 	@Then("^read Carry Over Balances report data$")
 	public void read_Carry_Over_Balances_report_data() throws Throwable {
-		//carryOverBalancesReportData = ReadExcel.getCarryOverBalances2018ReportData(StringConstants.CARRY_OVER_BALANCES_2018_REPORT);
+		carryOverBalancesReportData = ReadExcel.getCarryOverBalances2018ReportData(StringConstants.CARRY_OVER_BALANCES_2018_REPORT);
 	}
 	
 	@Then("^read the employees Time Off balances$")
