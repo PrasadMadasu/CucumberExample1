@@ -3,7 +3,7 @@ package constants;
 public class StringConstants {
 
 	public static final String USERNAME = "tamala@acmeinc.com";
-	public static final String PASSWORD = "DemoHR@2017";
+	public static final String PASSWORD = "xxxxxxxxxxxxxxxxxx";
 	
 	public static final String APPLICATION_URL = "https://demo2.sutihr.com/default.action#nbb";
 	public static final String APPLICATION_PERSONNEL_PAGE = "https://demo2.sutihr.com/paEmpSearch_search.action";
