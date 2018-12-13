@@ -18,7 +18,7 @@ import com.google.common.collect.Table;
 import constants.StringConstants;
 import cucumber.api.java.en.Given;
 import cucumber.api.java.en.Then;
-import read.write.excel.files.ReadExcel;
+import dto.TimeOffDetailsDTO;
 import read.write.excel.files.WriteExcel;
 /**
  * 
@@ -32,6 +32,7 @@ public class StepDefinition {
 	public static Table<String,String,Float> timeOffBalancesReportData = HashBasedTable.create();
 	public static Table<String,String,Float> carryOverBalancesReportData = HashBasedTable.create();
 	public static Table<String,String,String> timeOffBalancesNotMatchedDetails = HashBasedTable.create();
+	public static List<TimeOffDetailsDTO> timeOffDetailsDTOs = new ArrayList<TimeOffDetailsDTO>();
 	
 	@Given("^go to SutiHR application login page$")
 	public void go_to_SutiHR_application_login_page() throws Throwable {
@@ -56,13 +57,13 @@ public class StepDefinition {
 
 	@Then("^read Time Off Balances report data$")
 	public void read_Time_Off_Balances_report_data() throws Throwable {
-		timeOffBalancesReportData = ReadExcel.getTimeOffBalanceReportData(StringConstants.TIME_OFF_BALANCES_REPORT);
-		employees = new ArrayList<String>(timeOffBalancesReportData.rowKeySet());
+		//timeOffBalancesReportData = ReadExcel.getTimeOffBalanceReportData(StringConstants.TIME_OFF_BALANCES_REPORT);
+		//employees = new ArrayList<String>(timeOffBalancesReportData.rowKeySet());
 	}
 	
 	@Then("^read Carry Over Balances report data$")
 	public void read_Carry_Over_Balances_report_data() throws Throwable {
-		carryOverBalancesReportData = ReadExcel.getCarryOverBalances2018ReportData(StringConstants.CARRY_OVER_BALANCES_2018_REPORT);
+		//carryOverBalancesReportData = ReadExcel.getCarryOverBalances2018ReportData(StringConstants.CARRY_OVER_BALANCES_2018_REPORT);
 	}
 	
 	@Then("^read the employees Time Off balances$")
@@ -172,6 +173,12 @@ public class StepDefinition {
 		    					Float timeOffBalValue = null;
 		    					Float carryOverBalValue = null;
 		    					
+		    					System.out.println("Employee balance: "+balance);
+		    					System.out.println("Time Off Name: "+timeOffName);
+		    					System.out.println("Emp Full Name: "+empFullName);
+		    					System.out.println("timeOffBalancesReportData.get(empFullName, timeOffName): "+timeOffBalancesReportData.get(empFullName, timeOffName));
+		    					System.out.println("carryOverBalancesReportData.get(empFullName, timeOffName): "+carryOverBalancesReportData.get(empFullName, timeOffName));
+		    					
 		    					if (timeOffBalancesReportData != null && timeOffBalancesReportData.get(empFullName, timeOffName) != null) {
 		    						timeOffBalValue = timeOffBalancesReportData.get(empFullName, timeOffName);
 		    					}
@@ -179,6 +186,9 @@ public class StepDefinition {
 		    					if (carryOverBalancesReportData != null && carryOverBalancesReportData.get(empFullName, timeOffName) != null) {
 		    						carryOverBalValue = carryOverBalancesReportData.get(empFullName, timeOffName);
 		    					}
+		    					
+		    					System.out.println("timeOffBalValue: "+timeOffBalValue);
+		    					System.out.println("carryOverBalValue: "+carryOverBalValue);
 		    					
 		    					if (timeOffBalValue != null && balance != null) {
 		    						if (!balance.equals(timeOffBalValue)) {
@@ -224,63 +234,83 @@ public class StepDefinition {
 	@Then("^read Time Off details$")
 	public void read_Time_Off_details() throws Throwable {
 		
-		driver.get(StringConstants.APPLICATION_TIMEOFF_DETAILS_URL);
-		
-		WebElement tableElement = driver.findElement(By.xpath(".//*[@id='border']"));
-		
-		// create empty table object and iterate through all rows of the found table element
-		ArrayList<HashMap<String, WebElement>> userTable = new ArrayList<HashMap<String, WebElement>>();
-		List<WebElement> rowElements = tableElement.findElements(By.xpath(".//tr"));
+		try {
+			
+			driver.get(StringConstants.APPLICATION_TIMEOFF_DETAILS_URL);
+			
+			WebElement tableElement = driver.findElement(By.xpath(".//*[@id='border']"));
+			
+			// create empty table object and iterate through all rows of the found table element
+			ArrayList<HashMap<String, WebElement>> userTable = new ArrayList<HashMap<String, WebElement>>();
+			List<WebElement> rowElements = tableElement.findElements(By.xpath(".//tr"));
 
-		// get column names of table from table headers
-		ArrayList<String> columnNames = new ArrayList<String>();
-		List<WebElement> headerElements = rowElements.get(0).findElements(By.xpath(".//th"));
-		
-		for (WebElement headerElement: headerElements) {
-		  columnNames.add(headerElement.getText());
-		}
-
-		// iterate through all rows and add their content to table array
-		for (WebElement rowElement: rowElements) {
-		  HashMap<String, WebElement> row = new HashMap<String, WebElement>();
-		  
-		  // add table cells to current row
-		  int columnIndex = 0;
-		  List<WebElement> cellElements = rowElement.findElements(By.xpath(".//td"));
-		  for (WebElement cellElement: cellElements) {
-		    row.put(columnNames.get(columnIndex), cellElement);
-		    columnIndex++;
-		  }
-		  
-		  userTable.add(row);
-		  
-		  int size = 0;
-		  if (userTable != null) {
-  			size = userTable.size();
-  		  }
-  		
-		  for (int i = 1; i < size; i++) {
-				
-				String type = "";
-				String projectedBalance = "";
-				
-				for (String columnName: columnNames) {
-					
-					System.out.println("Time Off Details Column Name: "+columnName);
-					
-					WebElement data = userTable.get(i).get(columnName);
-					
-					System.out.println("Time Off Details Value: "+data.getText());
-					
-				}
-				
+			// get column names of table from table headers
+			ArrayList<String> columnNames = new ArrayList<String>();
+			List<WebElement> headerElements = rowElements.get(0).findElements(By.xpath(".//th"));
+			
+			for (WebElement headerElement: headerElements) {
+			  columnNames.add(headerElement.getText());
 			}
+			
+			int table_size = rowElements.size() - 1;
+			
+			for (int i = 2; i <= table_size; i++) {
+				
+				try {
+		    		driver.findElement(By.xpath("//*[@id='border']/tbody/tr["+i+"]/td[7]/img[1]")).click();
+				} catch (Exception e) {
+					continue;
+				}
+
+	    		String leaveName = driver.findElement(By.id("leaveName")).getAttribute("value");
+	    		
+	    		List<WebElement> radioButtons = driver.findElements(By.name("accruedLapsed"));
+	    		String radioButtonValue = "No";
+	    		String fullORHalf = "";
+	    		String maxLimit = "";
+	    		
+	    		for (int j = 0; j < radioButtons.size(); j++) {
+	    			
+	    			String checked = radioButtons.get(j).getAttribute("checked");
+	    			String value = radioButtons.get(j).getAttribute("value");
+	    			
+	    			if ((value != null && value.trim().equalsIgnoreCase("Accrued")) && 
+	    				(checked != null && checked.trim().equalsIgnoreCase("true"))) {
+	    				radioButtonValue = "Yes";
+	    				fullORHalf = driver.findElement(By.id("selectAccrued")).getAttribute("value");
+	    				maxLimit = driver.findElement(By.id("limit")).getAttribute("value");
+	    			}
+	    			
+	    		}
+	    		
+	    		leaveName = (leaveName != null) ? leaveName.trim() : leaveName;
+	    		radioButtonValue = (radioButtonValue != null) ? radioButtonValue.trim() : radioButtonValue;
+	    		fullORHalf = (fullORHalf != null) ? fullORHalf.trim() : fullORHalf;
+	    		Float limit = (maxLimit != null && !maxLimit.trim().equals("")) ? Float.parseFloat(maxLimit.trim()) : 0f;
+	    		
+	    		TimeOffDetailsDTO timeOffDetailsDTO = new TimeOffDetailsDTO();
+	    		timeOffDetailsDTO.setTimeOffName(leaveName);
+	    		timeOffDetailsDTO.setCarryForward(radioButtonValue);
+	    		timeOffDetailsDTO.setFullOrHalf(fullORHalf);
+	    		timeOffDetailsDTO.setMaxLimit(limit);
+	    		
+	    		timeOffDetailsDTOs.add(timeOffDetailsDTO);
+	    		
+	    		System.out.println("Leave Name: "+leaveName+" Carry Forward: "+radioButtonValue+" Full / Half: "+fullORHalf+" Max Limit: "+maxLimit);
+	    		
+	    		Thread.sleep(2000);
+	    		driver.navigate().back();
+			}
+			
+		} catch (Exception e) {
+			System.out.println("== Exception raised in read_Time_Off_details() is: ");
+			e.printStackTrace();
 		}
 	}
 
 	@Then("^sign out the SutiHR application$")
 	public void sign_out_the_SutiHR_application() throws Throwable {
-		Thread.sleep(5000);
+		Thread.sleep(3000);
 		driver.findElement(By.id("headerProImgId")).click();
 		driver.get(StringConstants.APPLICATION_SIGN_OUT_URL);
 		Thread.sleep(5000);

@@ -85,7 +85,7 @@ public class ReadExcel {
 			for (Row row: sheet) {
 				count++;
 				
-				if (count<=2) {
+				if (count<2) {
 					continue;
 				}
 				
