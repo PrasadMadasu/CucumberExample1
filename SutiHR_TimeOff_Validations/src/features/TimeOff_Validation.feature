@@ -9,4 +9,7 @@ Feature: SutiHR application TimeOff balance validations
 		And read the employees Time Off balances
 		Then store all details into xlsx file
 		Then read Time Off details
+		And validate the carry over balances before reset and after reset values with Time Off details setup
+		Then store all details into Carry Forward Not Matched xlsx file
+		And compare two files Time Off Balance Report and Carry Over Balance Report
 		Then sign out the SutiHR application

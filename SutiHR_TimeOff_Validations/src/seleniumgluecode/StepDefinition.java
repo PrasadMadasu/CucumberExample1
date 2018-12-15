@@ -1,12 +1,15 @@
 package seleniumgluecode;
 
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 
+import org.apache.log4j.Logger;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
@@ -18,9 +21,12 @@ import com.google.common.collect.Table;
 import constants.StringConstants;
 import cucumber.api.java.en.Given;
 import cucumber.api.java.en.Then;
+import dto.CarryOverBalanceDTO;
 import dto.TimeOffDetailsDTO;
 import read.write.excel.files.ReadExcel;
 import read.write.excel.files.WriteExcel;
+import util.CompareTwoExcelFiles;
+import util.Java8Utils;
 /**
  * 
  * @author m.prasad
@@ -28,15 +34,22 @@ import read.write.excel.files.WriteExcel;
  */
 public class StepDefinition {
 	
+	public static final Logger LOGGER = Logger.getLogger(StepDefinition.class.getName());
+	
 	public static WebDriver driver;
 	public static List<String> employees = new ArrayList<String>();
 	public static Table<String,String,Float> timeOffBalancesReportData = HashBasedTable.create();
 	public static Table<String,String,Float> carryOverBalancesReportData = HashBasedTable.create();
 	public static Table<String,String,String> timeOffBalancesNotMatchedDetails = HashBasedTable.create();
 	public static List<TimeOffDetailsDTO> timeOffDetailsDTOs = new ArrayList<TimeOffDetailsDTO>();
+	public static List<CarryOverBalanceDTO> carryOverBalanceDTOs = new ArrayList<CarryOverBalanceDTO>();
+	public static Table<String,String,String> carryOverBalancesNotMatchedDetails = HashBasedTable.create();
+	public static String companyName;
 	
 	@Given("^go to SutiHR application login page$")
 	public void go_to_SutiHR_application_login_page() throws Throwable {
+		
+		LOGGER.info("== Entered into go_to_SutiHR_application_login_page() method ==");
 		
 		System.setProperty(StringConstants.CHROME_PROPERTY, StringConstants.CHROME_DRIVER);
 		driver = new ChromeDriver();
@@ -51,6 +64,7 @@ public class StepDefinition {
 
 	@Given("^login as HR admin username and password$")
 	public void login_as_HR_admin_username_and_password() throws Throwable {
+		LOGGER.info("== Entered into login_as_HR_admin_username_and_password() ==");
 		driver.findElement(By.id("username")).sendKeys(StringConstants.USERNAME);
 	    driver.findElement(By.id("password")).sendKeys(StringConstants.PASSWORD);
 	    driver.findElement(By.id("loginForm_0")).click();
@@ -58,17 +72,37 @@ public class StepDefinition {
 
 	@Then("^read Time Off Balances report data$")
 	public void read_Time_Off_Balances_report_data() throws Throwable {
+		
+		LOGGER.info("== Entered into read_Time_Off_Balances_report_data() ==");
+		
 		timeOffBalancesReportData = ReadExcel.getTimeOffBalanceReportData(StringConstants.TIME_OFF_BALANCES_REPORT);
 		employees = new ArrayList<String>(timeOffBalancesReportData.rowKeySet());
 	}
 	
 	@Then("^read Carry Over Balances report data$")
 	public void read_Carry_Over_Balances_report_data() throws Throwable {
-		carryOverBalancesReportData = ReadExcel.getCarryOverBalances2018ReportData(StringConstants.CARRY_OVER_BALANCES_2018_REPORT);
+		
+		LOGGER.info("== Entered into read_Carry_Over_Balances_report_data() ==");
+		
+		ReadExcel.getCarryOverBalances2018ReportData(carryOverBalancesReportData,
+													 carryOverBalanceDTOs,
+													 StringConstants.CARRY_OVER_BALANCES_2018_REPORT);
 	}
 	
 	@Then("^read the employees Time Off balances$")
 	public void read_the_employees_Time_Off_balances() throws Throwable {
+		
+		LOGGER.info("== Entered into read_the_employees_Time_Off_balances() ==");
+		
+		try {
+			
+			companyName = driver.findElement(By.id("hiddenCompanyName")).getAttribute("value");
+			companyName = (companyName != null && !companyName.trim().equals("")) ? companyName.replaceAll("\\ ", "_") : companyName;
+			LOGGER.info("@@@ Company Name: "+companyName);
+			
+		} catch (Exception e) {
+			LOGGER.error("== Exception raised at the time of getting company name: "+e,e);
+		}
 		
 	    if (employees != null && employees.size() > 0) {
 	    	
@@ -77,26 +111,40 @@ public class StepDefinition {
 	    	employees.clear();
 	    	employees.addAll(uniqueValues);
 	    	
+	    	int count = 0;
+	    	
 	    	for (String empFullName: employees) {
 	    		
-	    		System.out.println("Employee code with name is: "+empFullName);
+	    		count++;
+	    		
+	    		LOGGER.info("@@@ Employee code with name is: "+empFullName);
+	    		
 	    		try {
 	    			
 		    		String[] strArray = empFullName.split("\\@");
 		    		String empCode = strArray[0];
 		    		String fullName = strArray[1];
 		    		
-		    		Thread.sleep(5000);
-		    		driver.get(StringConstants.APPLICATION_PERSONNEL_PAGE);
-		    		Thread.sleep(5000);
-		    		driver.findElement(By.xpath("//*[@id='paEmpSearch']/div[4]/div[3]/div/div/div/div[2]/a")).click();
+		    		Thread.sleep(4000);
+		    		if (count == 1) {
+		    			driver.get(StringConstants.APPLICATION_PERSONNEL_PAGE);
+		    			Thread.sleep(5000);
+			    		driver.findElement(By.xpath("//*[@id='paEmpSearch']/div[4]/div[3]/div/div/div/div[2]/a")).click();
+		    		} else {
+		    			driver.findElement(By.id("srchEmpCode")).clear();
+		    		}
+		    		
 		    		driver.findElement(By.id("srchEmpCode")).sendKeys(empCode.trim());
 		    		driver.findElement(By.xpath("//*[@id='paEmpSearch']/div[5]/div/input[2]")).click();
 		    		Thread.sleep(3000);
 		    		driver.findElement(By.id("searchId")).sendKeys(fullName.trim());
 		    		Thread.sleep(5000);
-		    		driver.findElement(By.xpath("//img[contains(@title,'View/Edit')]")).click();
-		    		Thread.sleep(5000);
+		    		try {
+		    			driver.findElement(By.xpath("//img[contains(@title,'View/Edit')]")).click();
+					} catch (Exception e) {
+						continue;
+					}
+		    		Thread.sleep(3000);
 		    		driver.findElement(By.id("timeOffTabId")).click();
 		    		
 		    		WebElement tableElement = driver.findElement(By.xpath(".//*[@id='balances']/div[3]/table"));
@@ -174,11 +222,11 @@ public class StepDefinition {
 		    					Float timeOffBalValue = null;
 		    					Float carryOverBalValue = null;
 		    					
-		    					System.out.println("Employee balance: "+balance);
-		    					System.out.println("Time Off Name: "+timeOffName);
-		    					System.out.println("Emp Full Name: "+empFullName);
-		    					System.out.println("timeOffBalancesReportData.get(empFullName, timeOffName): "+timeOffBalancesReportData.get(empFullName, timeOffName));
-		    					System.out.println("carryOverBalancesReportData.get(empFullName, timeOffName): "+carryOverBalancesReportData.get(empFullName, timeOffName));
+		    					LOGGER.info("@@@ Employee balance: "+balance);
+		    					LOGGER.info("@@@ Time Off Name: "+timeOffName);
+		    					LOGGER.info("@@@ Emp Full Name: "+empFullName);
+		    					LOGGER.info("@@@ timeOffBalancesReportData.get(empFullName, timeOffName): "+timeOffBalancesReportData.get(empFullName, timeOffName));
+		    					LOGGER.info("@@@ carryOverBalancesReportData.get(empFullName, timeOffName): "+carryOverBalancesReportData.get(empFullName, timeOffName));
 		    					
 		    					if (timeOffBalancesReportData != null && timeOffBalancesReportData.get(empFullName, timeOffName) != null) {
 		    						timeOffBalValue = timeOffBalancesReportData.get(empFullName, timeOffName);
@@ -188,8 +236,8 @@ public class StepDefinition {
 		    						carryOverBalValue = carryOverBalancesReportData.get(empFullName, timeOffName);
 		    					}
 		    					
-		    					System.out.println("timeOffBalValue: "+timeOffBalValue);
-		    					System.out.println("carryOverBalValue: "+carryOverBalValue);
+		    					LOGGER.info("@@@ timeOffBalValue: "+timeOffBalValue);
+		    					LOGGER.info("@@@ carryOverBalValue: "+carryOverBalValue);
 		    					
 		    					if (timeOffBalValue != null && balance != null) {
 		    						if (!balance.equals(timeOffBalValue)) {
@@ -216,20 +264,24 @@ public class StepDefinition {
 		    			}
 		    		}
 		    		
-		    		System.out.println("@@@ Employee Code: "+empCode+" Employee Name: "+fullName+" Validation Completed @@@");
+		    		LOGGER.info("@@@ @@@ Employee Code: "+empCode+" Employee Name: "+fullName+" Validation Completed @@@");
 		    		
 				} catch (Exception e) {
-					System.out.println("== Exception raised at the time of validation the "+empFullName+" is: ");
-					e.printStackTrace();
+					LOGGER.error("== Exception raised at the time of validation the "+empFullName+" is: "+e,e);
 				}
 	    		
+	    		Thread.sleep(1000);
+	    		driver.navigate().back();
+	    		driver.navigate().back();
 	    	}
 	    }
 	}
 
 	@Then("^store all details into xlsx file$")
 	public void store_all_details_into_xlsx_file() throws Throwable {
-		WriteExcel.WriteExcelData(StringConstants.TIMEOFF_BALANCES_NOT_MATCHED, timeOffBalancesNotMatchedDetails);
+		WriteExcel.WriteExcelData(StringConstants.TIMEOFF_BALANCES_NOT_MATCHED,
+								  companyName, "_Time_Off_Balances_Not_Matched.xlxs",
+								  timeOffBalancesNotMatchedDetails);
 	}
 	
 	@Then("^read Time Off details$")
@@ -297,20 +349,217 @@ public class StepDefinition {
 	    		
 	    		timeOffDetailsDTOs.add(timeOffDetailsDTO);
 	    		
-	    		System.out.println("Leave Name: "+leaveName+" Carry Forward: "+radioButtonValue+" Full / Half: "+fullORHalf+" Max Limit: "+maxLimit);
+	    		LOGGER.info("@@@ Leave Name: "+leaveName+" Carry Forward: "+radioButtonValue+" Full / Half: "+fullORHalf+" Max Limit: "+maxLimit);
 	    		
 	    		Thread.sleep(2000);
 	    		driver.navigate().back();
 			}
 			
 		} catch (Exception e) {
-			System.out.println("== Exception raised in read_Time_Off_details() is: ");
-			e.printStackTrace();
+			LOGGER.error("@@@ == Exception raised in read_Time_Off_details() is: "+e,e);
 		}
 	}
+	
+	@Then("^validate the carry over balances before reset and after reset values with Time Off details setup$")
+	public void validate_the_carry_over_balances_before_reset_and_after_reset_values_with_Time_Off_details_setup() throws Throwable {
+		
+		LOGGER.info("== Entered into validate_the_carry_over_balances_before_reset_and_after_reset_values_with_Time_Off_details_setup() method ===");
+		
+		DecimalFormat df = new DecimalFormat("0.00");
+		
+		if ((timeOffDetailsDTOs != null && timeOffDetailsDTOs.size() > 0) &&
+			(carryOverBalanceDTOs != null && carryOverBalanceDTOs.size() > 0) && 
+			(carryOverBalancesReportData != null && carryOverBalancesReportData.size() > 0)) {
+			
+			List<String> uniqueEmpDetails = new ArrayList<String>(carryOverBalancesReportData.rowKeySet());
+			
+			if (uniqueEmpDetails != null && uniqueEmpDetails.size() > 0) {
+				
+				Set<String> uniqueValues = new HashSet<>();
+		    	uniqueValues.addAll(uniqueEmpDetails);
+		    	uniqueEmpDetails.clear();
+		    	uniqueEmpDetails.addAll(uniqueValues);
+		    	
+		    	for (String empCodeWithName: uniqueEmpDetails) {
+		    		
+		    		String[] strArray = empCodeWithName.split("\\@");
+		    		String empCode = strArray[0];
+		    		String empFullName = strArray[1];
+		    		
+		    		for (TimeOffDetailsDTO dto: timeOffDetailsDTOs) {
+		    			
+		    			String timeOffName = dto.getTimeOffName();
+		    			String carryForward = dto.getCarryForward();
+		    			String fullOrHalf = dto.getFullOrHalf();
+		    			Float maxLimit = dto.getMaxLimit();
+		    			
+		    			Predicate<CarryOverBalanceDTO> predicate = Java8Utils.matchedObjects(empCode, empFullName, timeOffName);
+		    			List<CarryOverBalanceDTO> matchedObject = null;
+		    			
+		    			if (predicate != null) {
+		    				matchedObject = Java8Utils.filterCarryOverBalanceDTOs(carryOverBalanceDTOs, predicate);
+		    				
+		    				if (matchedObject != null && matchedObject.size() > 0) {
+		    					
+		    					String matcedObjCarryForward = matchedObject.get(0).getCarryForward();
+		    					String matchedObjectFullOrHalf = matchedObject.get(0).getCarryForwardRule();
+		    					Float balanceBeforeReset = matchedObject.get(0).getBalanceBeforeReset();
+		    					Float balanceAfterReset = matchedObject.get(0).getBalanceAfterReset();
+		    					Float maxCarryOverLimit = matchedObject.get(0).getMaxCarryOverLimit();
+		    					
+		    					if ("Yes".equalsIgnoreCase(carryForward)) {
+		    						if (carryForward.equalsIgnoreCase(matcedObjCarryForward)) {
+		    							
+		    							if ("Full".equalsIgnoreCase(fullOrHalf)) {
+		    								if (fullOrHalf.equalsIgnoreCase(matchedObjectFullOrHalf)) {
+		    									
+		    									if (maxCarryOverLimit != null && maxLimit != null) {
+		    										if (df.format(maxCarryOverLimit).equals(df.format(maxLimit))) {
 
+				    									if (balanceBeforeReset != null && balanceAfterReset != null) {
+				    										if (balanceBeforeReset < maxCarryOverLimit) {
+				    											if (!df.format(balanceBeforeReset).equals(df.format(balanceAfterReset))) {
+				    												String msg = "In Carry Over Balance Report Balance After and Before Reset Values not matched";
+						    										carryOverBalancesNotMatchedDetails.put(empCode, empFullName, msg);
+				    											}
+				    										} else if (balanceBeforeReset > maxCarryOverLimit) {
+				    											if (!df.format(maxCarryOverLimit).equals(df.format(balanceAfterReset))) {
+				    												String msg = "In Carry Over Balance Report Max Carry Over Limit and Balance After Reset Values not matched";
+						    										carryOverBalancesNotMatchedDetails.put(empCode, empFullName, msg);
+				    											}
+				    										} else if (balanceBeforeReset.equals(maxCarryOverLimit)) {
+				    											if (!df.format(maxCarryOverLimit).equals(df.format(balanceAfterReset))) {
+				    												String msg = "In Carry Over Balance Report Max Carry Over Limit and Balance After Reset Values not matched";
+						    										carryOverBalancesNotMatchedDetails.put(empCode, empFullName, msg);
+				    											}
+				    										}
+				    									} else {
+				    										String msg = "Please check the Carry Over Balance Report Balance After and Before Reset Values";
+				    										carryOverBalancesNotMatchedDetails.put(empCode, empFullName, msg);
+				    									}
+				    									
+		    										} else {
+		    											String msg = "In Carry Over Balance Report (Max Carry Over Limit) value is not matched with "+timeOffName+" setup";
+		    											carryOverBalancesNotMatchedDetails.put(empCode, empFullName, msg);
+		    										}
+		    									} else {
+		    										String msg = "Please check the Time Off setup and Carry Over Balance Report Max Limit Values";
+		    										carryOverBalancesNotMatchedDetails.put(empCode, empFullName, msg);
+		    									}
+		    									
+		    									
+		    								} else {
+		    									String msg = "In Carry Over Balance Report (Carry Forward Rule) value not matched with "+timeOffName+" setup";
+		    									carryOverBalancesNotMatchedDetails.put(empCode, empFullName, msg);
+		    								}
+		    							} else if ("Half".equalsIgnoreCase(fullOrHalf)) {
+		    								if (fullOrHalf.equalsIgnoreCase(matchedObjectFullOrHalf)) {
+		    									
+		    									Float halfBeforeResetValue = null;
+		    									if (balanceBeforeReset != null) {
+		    										halfBeforeResetValue = balanceBeforeReset / 2;
+		    									}
+		    									
+		    									if (maxCarryOverLimit != null && maxLimit != null) {
+		    										if (df.format(maxCarryOverLimit).equals(df.format(maxLimit))) {
+
+				    									if (balanceBeforeReset != null && balanceAfterReset != null) {
+				    										if (halfBeforeResetValue < maxCarryOverLimit) {
+				    											if (!df.format(halfBeforeResetValue).equals(df.format(balanceAfterReset))) {
+				    												String msg = "In Carry Over Balance Report having MAX LIMIT (Half) Balance After and Before Reset Values not matched";
+						    										carryOverBalancesNotMatchedDetails.put(empCode, empFullName, msg);
+				    											}
+				    										} else if (halfBeforeResetValue > maxCarryOverLimit) {
+				    											if (!df.format(maxCarryOverLimit).equals(df.format(balanceAfterReset))) {
+				    												String msg = "In Carry Over Balance Report having MAX LIMIT (Half) Max Carry Over Limit and Balance After Reset Values not matched";
+						    										carryOverBalancesNotMatchedDetails.put(empCode, empFullName, msg);
+				    											}
+				    										} else if (halfBeforeResetValue.equals(maxCarryOverLimit)) {
+				    											if (!df.format(maxCarryOverLimit).equals(df.format(balanceAfterReset))) {
+				    												String msg = "In Carry Over Balance Report having MAX LIMIT (Half) Max Carry Over Limit and Balance After Reset Values not matched";
+						    										carryOverBalancesNotMatchedDetails.put(empCode, empFullName, msg);
+				    											}
+				    										}
+				    									} else {
+				    										String msg = "Please check the Carry Over Balance Report Balance After and Before Reset Values";
+				    										carryOverBalancesNotMatchedDetails.put(empCode, empFullName, msg);
+				    									}
+				    									
+		    										} else {
+		    											String msg = "In Carry Over Balance Report (Max Carry Over Limit) value is not matched with "+timeOffName+" setup";
+		    											carryOverBalancesNotMatchedDetails.put(empCode, empFullName, msg);
+		    										}
+		    									} else {
+		    										String msg = "Please check the Time Off setup and Carry Over Balance Report Max Limit Values";
+		    										carryOverBalancesNotMatchedDetails.put(empCode, empFullName, msg);
+		    									}
+		    									
+		    									
+		    								} else {
+		    									String msg = "In Carry Over Balance Report (Carry Forward Rule) value not matched with "+timeOffName+" setup";
+		    									carryOverBalancesNotMatchedDetails.put(empCode, empFullName, msg);
+		    								}
+		    							}
+		    							
+		    						} else {
+		    							String msg = "In Carry Over Balance Report (Carry Forward) value is not matced to "+timeOffName+" setup";
+		    							carryOverBalancesNotMatchedDetails.put(empCode, empFullName, msg);
+		    						}
+		    					} else if ("No".equals(carryForward)) {
+		    						if (carryForward.equalsIgnoreCase(matcedObjCarryForward)) {
+		    							if (balanceAfterReset != null) {
+		    								if (!balanceAfterReset.equals(0f)) {
+		    									String msg = "In Carry Over Balance Report (Balance After reset value) is not becomes zero even after applying Carry Forward is (No) also";
+	    										carryOverBalancesNotMatchedDetails.put(empCode, empFullName, msg);
+		    								}
+		    							} else {
+    										String msg = "Please check the Carry Over Balance Report Balance After Value";
+    										carryOverBalancesNotMatchedDetails.put(empCode, empFullName, msg);
+    									}
+		    						} else {
+		    							String msg = "In Carry Over Balance Report (Carry Forward) value is not matced to "+timeOffName+" setup";
+		    							carryOverBalancesNotMatchedDetails.put(empCode, empFullName, msg);
+		    						}
+		    					}
+		    				} else {
+		    					String msg = timeOffName+" has no record in Carry Over Balance Report for this employee";
+		    					carryOverBalancesNotMatchedDetails.put(empCode, empFullName, msg);
+		    				}
+		    			}
+		    		}
+		    	}
+		    	
+			}
+			
+		}
+		
+	}
+	
+	@Then("^store all details into Carry Forward Not Matched xlsx file$")
+	public void store_all_details_into_Carry_Forward_Not_Matched_xlsx_file() throws Throwable {
+		
+		LOGGER.info("== Entered into store_all_details_into_Carry_Forward_Not_Matched_xlsx_file() method ==");
+		
+		WriteExcel.WriteExcelData(StringConstants.TIMEOFF_BALANCES_NOT_MATCHED, companyName, 
+								  "_Carry_Over_Balances_Not_Matched.xlsx",  
+								  carryOverBalancesNotMatchedDetails);
+	}
+	
+	@Then("^compare two files Time Off Balance Report and Carry Over Balance Report$")
+	public void compare_two_files_Time_Off_Balance_Report_and_Carry_Over_Balance_Report() throws Throwable {
+		
+		LOGGER.info("== Entered into compare_two_files_Time_Off_Balance_Report_and_Carry_Over_Balance_Report() method ==");
+		
+		CompareTwoExcelFiles.CompareTwoFile(timeOffBalancesReportData, carryOverBalancesReportData, 
+											StringConstants.TIMEOFF_BALANCES_NOT_MATCHED, companyName);
+		
+	}
+	
 	@Then("^sign out the SutiHR application$")
 	public void sign_out_the_SutiHR_application() throws Throwable {
+		
+		LOGGER.info("== Entered into sign_out_the_SutiHR_application() method ==");
+		
 		Thread.sleep(3000);
 		driver.findElement(By.id("headerProImgId")).click();
 		driver.get(StringConstants.APPLICATION_SIGN_OUT_URL);

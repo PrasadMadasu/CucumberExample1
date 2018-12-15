@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.log4j.Logger;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.Row;
@@ -13,12 +14,16 @@ import org.apache.poi.ss.usermodel.WorkbookFactory;
 
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
+
+import dto.CarryOverBalanceDTO;
 /**
  * 
  * @author m.prasad
  *
  */
 public class ReadExcel {
+	
+	public static final Logger LOGGER = Logger.getLogger(ReadExcel.class.getName());
 	
 	/**
 	 * Method getEmployees
@@ -27,7 +32,8 @@ public class ReadExcel {
 	 */
 	public static List<String> getEmployees(String fileName) {
 		
-		System.out.println("== Entered into getEmployees() of ReadExcel clas ==");
+		LOGGER.info("== Entered into getEmployees() of ReadExcel clas ==");
+		
 		Workbook workbook = null;
 		Sheet sheet = null;
 		DataFormatter dataFormatter = null;
@@ -52,30 +58,31 @@ public class ReadExcel {
 	            employees.add(firstName+" "+lastName);
 	        }
 			workbook.close();
-			System.out.println("Employee Details: "+employees);
+			LOGGER.info("@@@ Employee Details: "+employees);
 		} catch (Exception e) {
-			e.printStackTrace();
+			LOGGER.error("== Exception raised in getEmployees() is "+e,e);
 		}
 		return employees;
 	}
 	
 	/**
 	 * Method getCarryOverBalances2018ReportData
+	 * @param carryOverBalances2018ReportData
+	 * @param carryOverBalanceDTOs
 	 * @param fileName
-	 * @return Table Object
 	 */
-	public static Table<String,String,Float> getCarryOverBalances2018ReportData(String fileName) {
+	public static void getCarryOverBalances2018ReportData(Table<String,String,Float> carryOverBalances2018ReportData,
+														  List<CarryOverBalanceDTO> carryOverBalanceDTOs,
+														  String fileName) {
 		
-		System.out.println("== Entered into getCarryOverBalances2018ReportData() of ReadExcel clas ==");
+		LOGGER.info("== Entered into getCarryOverBalances2018ReportData() of ReadExcel clas ==");
 		
 		Workbook workbook = null;
 		Sheet sheet = null;
 		DataFormatter dataFormatter = null;
-		Table<String,String,Float> carryOverBalances2018ReportData = null;
 		
 		try {
 			
-			carryOverBalances2018ReportData = HashBasedTable.create();
 			workbook = WorkbookFactory.create(new File(fileName));
 			sheet = workbook.getSheetAt(0);
 			dataFormatter = new DataFormatter();
@@ -112,21 +119,52 @@ public class ReadExcel {
 		            Float balance = (projectedBalance != null && !projectedBalance.trim().equals("")) ? Float.parseFloat(projectedBalance.trim()) : 0f ;
 		            
 		            carryOverBalances2018ReportData.put(empCode+"@"+empFullName, timeOffName, balance);
+
+		            String carryForward = name.get(4);
+		            carryForward = (carryForward != null) ? carryForward.trim() : carryForward;
+		            
+		            String carryForwardRule = name.get(5);
+		            carryForwardRule = (carryForwardRule != null) ? carryForwardRule.trim() : carryForwardRule;
+		            
+		            String maxCarry = name.get(6);
+		            maxCarry = (maxCarry != null) ? maxCarry.trim() : maxCarry;
+		            Float maxCarryBalance = (maxCarry != null && !maxCarry.trim().equals("")) ? Float.parseFloat(maxCarry.trim()) : 0f ;
+		            
+		            String balanceAfterReset = name.get(7);
+		            balanceAfterReset = (balanceAfterReset != null) ? balanceAfterReset.trim() : balanceAfterReset;
+		            Float balanceAfterReset_Float = (balanceAfterReset != null && !balanceAfterReset.trim().equals("")) ? Float.parseFloat(balanceAfterReset.trim()) : 0f ;
+		            
+		            String hoursOrDays = name.get(8);
+		            hoursOrDays = (hoursOrDays != null) ? hoursOrDays.trim() : hoursOrDays;
+		            
+		            String resetOn = name.get(9);
+		            resetOn = (resetOn != null) ? resetOn.trim() : resetOn;
+		            
+		            CarryOverBalanceDTO balanceDTO = new CarryOverBalanceDTO();
+		            balanceDTO.setEmpCode(empCode);
+		            balanceDTO.setEmpFullName(empFullName);
+		            balanceDTO.setTimeOffName(timeOffName);
+		            balanceDTO.setBalanceBeforeReset(balance);
+		            balanceDTO.setCarryForward(carryForward);
+		            balanceDTO.setCarryForwardRule(carryForwardRule);
+		            balanceDTO.setMaxCarryOverLimit(maxCarryBalance);
+		            balanceDTO.setBalanceAfterReset(balanceAfterReset_Float);
+		            balanceDTO.setHoursOrDays(hoursOrDays);
+		            balanceDTO.setResetOn(resetOn);
+		            
+		            carryOverBalanceDTOs.add(balanceDTO);
 		            
 				} catch (Exception e) {
-					System.out.println("== Exception raised in reading rows code is: \n");
-					e.printStackTrace();
+					LOGGER.error("== Exception raised in reading rows code is: \n"+e,e);
 				}
 				
 	        }
 			workbook.close();
-			System.out.println("Employee's Carry Over Balances 2018 report Details: "+carryOverBalances2018ReportData);
+			LOGGER.info("@@@ Employee's Carry Over Balances 2018 report Details: "+carryOverBalances2018ReportData);
 			
 		} catch (Exception e) {
-			System.out.println("== Exception raised in getCarryOverBalances2018ReportData() is: ");
-			e.printStackTrace();
+			LOGGER.error("== Exception raised in getCarryOverBalances2018ReportData() is: "+e,e);
 		}
-		return carryOverBalances2018ReportData;
 	}
 	
 	/**
@@ -136,7 +174,7 @@ public class ReadExcel {
 	 */
 	public static Table<String,String,Float> getTimeOffBalanceReportData(String fileName) {
 		
-		System.out.println("== Entered into getTimeOffBalanceReportData() of ReadExcel class ==");
+		LOGGER.info("== Entered into getTimeOffBalanceReportData() of ReadExcel class ==");
 		
 		Workbook workbook = null;
 		Sheet sheet = null;
@@ -197,18 +235,16 @@ public class ReadExcel {
 		            }
 		            
 				} catch (Exception e) {
-					System.out.println("== Exception raised in reading rows code is: \n");
-					e.printStackTrace();
+					LOGGER.error("== Exception raised in reading rows code is: \n"+e,e);
 				}
 	            
 	        }
 			workbook.close();
-			System.out.println("@@@ Employee's Time Off Balances Report Details: "+timeOffBalanceReportData);
+			LOGGER.info("@@@ Employee's Time Off Balances Report Details: "+timeOffBalanceReportData);
 		
 			
 		} catch (Exception e) {
-			System.out.println("== Exception raised in getTimeOffBalanceReportData() is: ");
-			e.printStackTrace();
+			LOGGER.error("== Exception raised in getTimeOffBalanceReportData() is: "+e,e);
 		}
 		return timeOffBalanceReportData;
 	}

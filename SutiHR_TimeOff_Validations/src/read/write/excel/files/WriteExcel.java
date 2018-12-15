@@ -5,6 +5,7 @@ import java.io.FileOutputStream;
 import java.util.LinkedHashMap;
 import java.util.Set;
 
+import org.apache.log4j.Logger;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
@@ -18,15 +19,18 @@ import com.google.common.collect.Table;
  */
 public class WriteExcel {
 	
+	public static final Logger LOGGER = Logger.getLogger(WriteExcel.class.getName());
+	
 	/**
 	 * Method WriteExcelData
 	 * @param fileName
 	 * @param timeOffBalances
 	 */
-	public static void WriteExcelData(String fileName,
+	public static void WriteExcelData(String filePath,String companyName,
+									  String fileName,
 						   	          Table<String,String,String> timeOffBalances) {
 		
-		System.out.println("== Entered into WriteExcelData() of WriteExcel class ==");
+		LOGGER.info("== Entered into WriteExcelData() of WriteExcel class ==");
 		
 		XSSFWorkbook workbook = null;
 		XSSFSheet spreadsheet = null;
@@ -45,7 +49,7 @@ public class WriteExcel {
 															 "Time Off", 
 															 "Comments"});
 			
-			System.out.println("Time Off Balances Not Matched Data is: "+timeOffBalances);
+			LOGGER.info("@@@ Time Off Balances Not Matched Data is: "+timeOffBalances);
 			
 			if (timeOffBalances != null && timeOffBalances.size() > 0) {
 				for (Table.Cell<String,String,String> cell: timeOffBalances.cellSet()) {
@@ -78,12 +82,12 @@ public class WriteExcel {
 		        }
 			}
 			
-			FileOutputStream out = new FileOutputStream(new File(fileName));
+			FileOutputStream out = new FileOutputStream(new File(filePath+companyName+fileName));
 			workbook.write(out);
 			out.close();
-			System.out.println("Write xlsx file successfully !!");
+			LOGGER.info("Write xlsx file successfully !!");
 		} catch (Exception e) {
-			e.printStackTrace();
+			LOGGER.error("Exception raised in WriteExcelData() is "+e,e);
 		}
 	}
 }
