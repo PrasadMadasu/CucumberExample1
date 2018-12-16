@@ -68,6 +68,35 @@ public class StepDefinition {
 		driver.findElement(By.id("username")).sendKeys(StringConstants.USERNAME);
 	    driver.findElement(By.id("password")).sendKeys(StringConstants.PASSWORD);
 	    driver.findElement(By.id("loginForm_0")).click();
+	    driver.get("https://demo2.sutihr.com/myTeamTimeOffAction_getTimeOffDetails.action");
+	    
+	    /*try {
+
+	    	int count = 0;
+	    	while (count < 4) {
+	    		count++;
+	    		try {
+	    			driver.findElement(By.xpath("//*[@id='searchForm']/div[2]/nav/div/div/div[2]/a["+count+"]")).click();
+				} catch (Exception e) {
+					try {
+						try {
+							driver.findElement(By.xpath("//*[@id='paginationNextAction']/a[1]")).click();
+						} catch (Exception e2) {
+							break;
+						}
+						driver.findElement(By.xpath("//*[@id='searchForm']/div[2]/nav/div/div/div[2]/a["+count+"]")).click();
+					} catch (Exception e2) {
+						count = 0;
+						continue;
+					}
+				}
+	    		
+	    	}
+	    	 
+		} catch (Exception e) {
+			e.printStackTrace();
+		}*/
+	     
 	}
 
 	@Then("^read Time Off Balances report data$")
