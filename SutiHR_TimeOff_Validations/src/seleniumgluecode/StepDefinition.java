@@ -68,35 +68,6 @@ public class StepDefinition {
 		driver.findElement(By.id("username")).sendKeys(StringConstants.USERNAME);
 	    driver.findElement(By.id("password")).sendKeys(StringConstants.PASSWORD);
 	    driver.findElement(By.id("loginForm_0")).click();
-	    driver.get("https://demo2.sutihr.com/myTeamTimeOffAction_getTimeOffDetails.action");
-	    
-	    /*try {
-
-	    	int count = 0;
-	    	while (count < 4) {
-	    		count++;
-	    		try {
-	    			driver.findElement(By.xpath("//*[@id='searchForm']/div[2]/nav/div/div/div[2]/a["+count+"]")).click();
-				} catch (Exception e) {
-					try {
-						try {
-							driver.findElement(By.xpath("//*[@id='paginationNextAction']/a[1]")).click();
-						} catch (Exception e2) {
-							break;
-						}
-						driver.findElement(By.xpath("//*[@id='searchForm']/div[2]/nav/div/div/div[2]/a["+count+"]")).click();
-					} catch (Exception e2) {
-						count = 0;
-						continue;
-					}
-				}
-	    		
-	    	}
-	    	 
-		} catch (Exception e) {
-			e.printStackTrace();
-		}*/
-	     
 	}
 
 	@Then("^read Time Off Balances report data$")
@@ -316,72 +287,174 @@ public class StepDefinition {
 	@Then("^read Time Off details$")
 	public void read_Time_Off_details() throws Throwable {
 		
+		boolean isEnablePagination = true;
+		
 		try {
 			
 			driver.get(StringConstants.APPLICATION_TIMEOFF_DETAILS_URL);
 			
-			WebElement tableElement = driver.findElement(By.xpath(".//*[@id='border']"));
-			
-			// create empty table object and iterate through all rows of the found table element
-			ArrayList<HashMap<String, WebElement>> userTable = new ArrayList<HashMap<String, WebElement>>();
-			List<WebElement> rowElements = tableElement.findElements(By.xpath(".//tr"));
-
-			// get column names of table from table headers
-			ArrayList<String> columnNames = new ArrayList<String>();
-			List<WebElement> headerElements = rowElements.get(0).findElements(By.xpath(".//th"));
-			
-			for (WebElement headerElement: headerElements) {
-			  columnNames.add(headerElement.getText());
+			try {
+				driver.findElement(By.xpath("//*[@id='searchForm']/div/div/div/div[5]/div[3]/div/div/div[2]/a[1]"));
+			} catch (Exception e) {
+				isEnablePagination = false;
 			}
 			
-			int table_size = rowElements.size() - 1;
+			LOGGER.info("@@@ Time Off Details isEnablePagination: "+isEnablePagination);
 			
-			for (int i = 2; i <= table_size; i++) {
-				
-				try {
-		    		driver.findElement(By.xpath("//*[@id='border']/tbody/tr["+i+"]/td[7]/img[1]")).click();
-				} catch (Exception e) {
-					continue;
-				}
+			if (isEnablePagination) {
 
-	    		String leaveName = driver.findElement(By.id("leaveName")).getAttribute("value");
-	    		
-	    		List<WebElement> radioButtons = driver.findElements(By.name("accruedLapsed"));
-	    		String radioButtonValue = "No";
-	    		String fullORHalf = "";
-	    		String maxLimit = "";
-	    		
-	    		for (int j = 0; j < radioButtons.size(); j++) {
-	    			
-	    			String checked = radioButtons.get(j).getAttribute("checked");
-	    			String value = radioButtons.get(j).getAttribute("value");
-	    			
-	    			if ((value != null && value.trim().equalsIgnoreCase("Accrued")) && 
-	    				(checked != null && checked.trim().equalsIgnoreCase("true"))) {
-	    				radioButtonValue = "Yes";
-	    				fullORHalf = driver.findElement(By.id("selectAccrued")).getAttribute("value");
-	    				maxLimit = driver.findElement(By.id("limit")).getAttribute("value");
-	    			}
-	    			
-	    		}
-	    		
-	    		leaveName = (leaveName != null) ? leaveName.trim() : leaveName;
-	    		radioButtonValue = (radioButtonValue != null) ? radioButtonValue.trim() : radioButtonValue;
-	    		fullORHalf = (fullORHalf != null) ? fullORHalf.trim() : fullORHalf;
-	    		Float limit = (maxLimit != null && !maxLimit.trim().equals("")) ? Float.parseFloat(maxLimit.trim()) : 0f;
-	    		
-	    		TimeOffDetailsDTO timeOffDetailsDTO = new TimeOffDetailsDTO();
-	    		timeOffDetailsDTO.setTimeOffName(leaveName);
-	    		timeOffDetailsDTO.setCarryForward(radioButtonValue);
-	    		timeOffDetailsDTO.setFullOrHalf(fullORHalf);
-	    		timeOffDetailsDTO.setMaxLimit(limit);
-	    		
-	    		timeOffDetailsDTOs.add(timeOffDetailsDTO);
-	    		
-	    		LOGGER.info("@@@ Leave Name: "+leaveName+" Carry Forward: "+radioButtonValue+" Full / Half: "+fullORHalf+" Max Limit: "+maxLimit);
-	    		
-	    		Thread.sleep(2000);
-	    		driver.navigate().back();
+		    	int count = 0;
+		    	while (count < 4) {
+		    		count++;
+		    		try {
+		    			
+		    			driver.findElement(By.xpath("//*[@id='searchForm']/div/div/div/div[5]/div[3]/div/div/div[2]/a["+count+"]")).click();
+
+		    			WebElement tableElement = driver.findElement(By.xpath(".//*[@id='border']"));
+		    			
+		    			// create empty table object and iterate through all rows of the found table element
+		    			ArrayList<HashMap<String, WebElement>> userTable = new ArrayList<HashMap<String, WebElement>>();
+		    			List<WebElement> rowElements = tableElement.findElements(By.xpath(".//tr"));
+
+		    			// get column names of table from table headers
+		    			ArrayList<String> columnNames = new ArrayList<String>();
+		    			List<WebElement> headerElements = rowElements.get(0).findElements(By.xpath(".//th"));
+		    			
+		    			for (WebElement headerElement: headerElements) {
+		    			  columnNames.add(headerElement.getText());
+		    			}
+		    			
+		    			int table_size = rowElements.size();
+		    			
+		    			for (int i = 2; i <= table_size; i++) {
+		    				
+		    				try {
+		    		    		driver.findElement(By.xpath("//*[@id='border']/tbody/tr["+i+"]/td[7]/img[1]")).click();
+		    				} catch (Exception e) {
+		    					continue;
+		    				}
+
+		    	    		String leaveName = driver.findElement(By.id("leaveName")).getAttribute("value");
+		    	    		
+		    	    		List<WebElement> radioButtons = driver.findElements(By.name("accruedLapsed"));
+		    	    		String radioButtonValue = "No";
+		    	    		String fullORHalf = "";
+		    	    		String maxLimit = "";
+		    	    		
+		    	    		for (int j = 0; j < radioButtons.size(); j++) {
+		    	    			
+		    	    			String checked = radioButtons.get(j).getAttribute("checked");
+		    	    			String value = radioButtons.get(j).getAttribute("value");
+		    	    			
+		    	    			if ((value != null && value.trim().equalsIgnoreCase("Accrued")) && 
+		    	    				(checked != null && checked.trim().equalsIgnoreCase("true"))) {
+		    	    				radioButtonValue = "Yes";
+		    	    				fullORHalf = driver.findElement(By.id("selectAccrued")).getAttribute("value");
+		    	    				maxLimit = driver.findElement(By.id("limit")).getAttribute("value");
+		    	    			}
+		    	    			
+		    	    		}
+		    	    		
+		    	    		leaveName = (leaveName != null) ? leaveName.trim() : leaveName;
+		    	    		radioButtonValue = (radioButtonValue != null) ? radioButtonValue.trim() : radioButtonValue;
+		    	    		fullORHalf = (fullORHalf != null) ? fullORHalf.trim() : fullORHalf;
+		    	    		Float limit = (maxLimit != null && !maxLimit.trim().equals("")) ? Float.parseFloat(maxLimit.trim()) : 0f;
+		    	    		
+		    	    		TimeOffDetailsDTO timeOffDetailsDTO = new TimeOffDetailsDTO();
+		    	    		timeOffDetailsDTO.setTimeOffName(leaveName);
+		    	    		timeOffDetailsDTO.setCarryForward(radioButtonValue);
+		    	    		timeOffDetailsDTO.setFullOrHalf(fullORHalf);
+		    	    		timeOffDetailsDTO.setMaxLimit(limit);
+		    	    		
+		    	    		timeOffDetailsDTOs.add(timeOffDetailsDTO);
+		    	    		
+		    	    		LOGGER.info("@@@ Leave Name: "+leaveName+" Carry Forward: "+radioButtonValue+" Full / Half: "+fullORHalf+" Max Limit: "+maxLimit);
+		    	    		
+		    	    		Thread.sleep(2000);
+		    	    		driver.navigate().back();
+		    			}
+		    			
+					} catch (Exception e) {
+						try {
+							try {
+								driver.findElement(By.xpath("//*[@id='paginationNextAction']/a[1]")).click();
+							} catch (Exception e2) {
+								break;
+							}
+							driver.findElement(By.xpath("//*[@id='searchForm']/div/div/div/div[5]/div[3]/div/div/div[2]/a["+count+"]")).click();
+						} catch (Exception e2) {
+							count = 0;
+							continue;
+						}
+					}
+		    		
+		    	}
+		    	
+			} else {
+
+				WebElement tableElement = driver.findElement(By.xpath(".//*[@id='border']"));
+				
+				// create empty table object and iterate through all rows of the found table element
+				ArrayList<HashMap<String, WebElement>> userTable = new ArrayList<HashMap<String, WebElement>>();
+				List<WebElement> rowElements = tableElement.findElements(By.xpath(".//tr"));
+
+				// get column names of table from table headers
+				ArrayList<String> columnNames = new ArrayList<String>();
+				List<WebElement> headerElements = rowElements.get(0).findElements(By.xpath(".//th"));
+				
+				for (WebElement headerElement: headerElements) {
+				  columnNames.add(headerElement.getText());
+				}
+				
+				int table_size = rowElements.size() - 1;
+				
+				for (int i = 2; i <= table_size; i++) {
+					
+					try {
+			    		driver.findElement(By.xpath("//*[@id='border']/tbody/tr["+i+"]/td[7]/img[1]")).click();
+					} catch (Exception e) {
+						continue;
+					}
+
+		    		String leaveName = driver.findElement(By.id("leaveName")).getAttribute("value");
+		    		
+		    		List<WebElement> radioButtons = driver.findElements(By.name("accruedLapsed"));
+		    		String radioButtonValue = "No";
+		    		String fullORHalf = "";
+		    		String maxLimit = "";
+		    		
+		    		for (int j = 0; j < radioButtons.size(); j++) {
+		    			
+		    			String checked = radioButtons.get(j).getAttribute("checked");
+		    			String value = radioButtons.get(j).getAttribute("value");
+		    			
+		    			if ((value != null && value.trim().equalsIgnoreCase("Accrued")) && 
+		    				(checked != null && checked.trim().equalsIgnoreCase("true"))) {
+		    				radioButtonValue = "Yes";
+		    				fullORHalf = driver.findElement(By.id("selectAccrued")).getAttribute("value");
+		    				maxLimit = driver.findElement(By.id("limit")).getAttribute("value");
+		    			}
+		    			
+		    		}
+		    		
+		    		leaveName = (leaveName != null) ? leaveName.trim() : leaveName;
+		    		radioButtonValue = (radioButtonValue != null) ? radioButtonValue.trim() : radioButtonValue;
+		    		fullORHalf = (fullORHalf != null) ? fullORHalf.trim() : fullORHalf;
+		    		Float limit = (maxLimit != null && !maxLimit.trim().equals("")) ? Float.parseFloat(maxLimit.trim()) : 0f;
+		    		
+		    		TimeOffDetailsDTO timeOffDetailsDTO = new TimeOffDetailsDTO();
+		    		timeOffDetailsDTO.setTimeOffName(leaveName);
+		    		timeOffDetailsDTO.setCarryForward(radioButtonValue);
+		    		timeOffDetailsDTO.setFullOrHalf(fullORHalf);
+		    		timeOffDetailsDTO.setMaxLimit(limit);
+		    		
+		    		timeOffDetailsDTOs.add(timeOffDetailsDTO);
+		    		
+		    		LOGGER.info("@@@ Leave Name: "+leaveName+" Carry Forward: "+radioButtonValue+" Full / Half: "+fullORHalf+" Max Limit: "+maxLimit);
+		    		
+		    		Thread.sleep(2000);
+		    		driver.navigate().back();
+				}
 			}
 			
 		} catch (Exception e) {
